@@ -1172,10 +1172,7 @@ func (s *OpenAIGatewayService) SnapshotOpenAIAccountSchedulerMetrics() OpenAIAcc
 }
 
 func (s *OpenAIGatewayService) openAIWSSessionStickyTTL() time.Duration {
-	if s != nil && s.cfg != nil && s.cfg.Gateway.OpenAIWS.StickySessionTTLSeconds > 0 {
-		return time.Duration(s.cfg.Gateway.OpenAIWS.StickySessionTTLSeconds) * time.Second
-	}
-	return openaiStickySessionTTL
+	return s.stickySessionTTL()
 }
 
 func (s *OpenAIGatewayService) openAIWSLBTopK() int {

@@ -197,6 +197,36 @@ func TestOpenAIGatewayService_GenerateSessionHash_Priority(t *testing.T) {
 	}
 }
 
+func TestOpenAIGatewayService_GenerateSessionHash_Sub2APIHeaderWinsAndIsIsolated(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	svc := &OpenAIGatewayService{}
+
+	mk := func(apiKeyID, groupID int64) *gin.Context {
+		rec := httptest.NewRecorder()
+		c, _ := gin.CreateTestContext(rec)
+		c.Request = httptest.NewRequest(http.MethodPost, "/openai/v1/responses", nil)
+		c.Request.Header.Set(Sub2APISessionHeader, "librechat-conversation")
+		c.Request.Header.Set("session_id", "legacy-session")
+		c.Set("api_key", &APIKey{ID: apiKeyID, GroupID: &groupID})
+		return c
+	}
+
+	h1 := svc.GenerateSessionHash(mk(1, 10), []byte(`{"prompt_cache_key":"pcache"}`))
+	h2 := svc.GenerateSessionHash(mk(2, 10), []byte(`{"prompt_cache_key":"pcache"}`))
+	h3 := svc.GenerateSessionHash(mk(1, 20), []byte(`{"prompt_cache_key":"pcache"}`))
+	require.NotEmpty(t, h1)
+	require.NotEqual(t, h1, h2)
+	require.NotEqual(t, h1, h3)
+
+	rec := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(rec)
+	c.Request = httptest.NewRequest(http.MethodPost, "/openai/v1/responses", nil)
+	c.Request.Header.Set("session_id", "librechat-conversation")
+	legacy := svc.GenerateSessionHash(c, []byte(`{"prompt_cache_key":"pcache"}`))
+	require.Equal(t, legacy, svc.GenerateSessionHash(mk(0, 0), []byte(`{"prompt_cache_key":"pcache"}`)))
+	require.NotEqual(t, legacy, h1)
+}
+
 func TestOpenAIGatewayService_GenerateSessionHash_UsesXXHash64(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	rec := httptest.NewRecorder()

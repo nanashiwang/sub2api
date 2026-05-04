@@ -696,6 +696,7 @@ export default {
         codexCli: 'Codex CLI',
         codexCliWs: 'Codex CLI (WebSocket)',
         opencode: 'OpenCode',
+        newApiLibreChat: 'New API / LibreChat',
       },
       antigravity: {
         description: 'Configure API access for Antigravity group. Select the configuration method based on your client.',
@@ -713,6 +714,13 @@ export default {
         title: 'OpenCode Example',
         subtitle: 'opencode.json',
         hint: 'Config path: ~/.config/opencode/opencode.json (or opencode.jsonc), create if not exists. Use default providers (openai/anthropic/google) or custom provider_id. API Key can be configured directly or via /connect command. This is an example, adjust models and options as needed.',
+      },
+      newApiLibreChat: {
+        description: 'Recommended chain: LibreChat -> New API -> Sub2API. Sub2API keeps the same conversation pinned to the same upstream account by session ID.',
+        note: 'Prefer forwarding X-Sub2API-Session-ID. If New API cannot pass custom headers, keep session_id or conversation_id in the request body.',
+        channelHint: 'Create a New API channel to Sub2API, using this Sub2API API key as the upstream key.',
+        libreChatHint: 'Point LibreChat custom endpoint to New API; replace NEW_API_TOKEN with your New API token.',
+        headerHint: 'Session identifier priority for troubleshooting sticky-account misses.',
       },
     },
     customKeyLabel: 'Custom Key',

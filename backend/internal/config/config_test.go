@@ -76,6 +76,9 @@ func TestLoadDefaultSchedulingConfig(t *testing.T) {
 	if cfg.Gateway.Scheduling.SlotCleanupInterval != 30*time.Second {
 		t.Fatalf("SlotCleanupInterval = %v, want 30s", cfg.Gateway.Scheduling.SlotCleanupInterval)
 	}
+	if cfg.Gateway.StickySessionTTLSeconds != 3600 {
+		t.Fatalf("StickySessionTTLSeconds = %d, want 3600", cfg.Gateway.StickySessionTTLSeconds)
+	}
 }
 
 func TestLoadDefaultOpenAIWSConfig(t *testing.T) {
@@ -1241,6 +1244,11 @@ func TestValidateConfigErrors(t *testing.T) {
 			name:    "gateway client idle ttl",
 			mutate:  func(c *Config) { c.Gateway.ClientIdleTTLSeconds = 0 },
 			wantErr: "gateway.client_idle_ttl_seconds",
+		},
+		{
+			name:    "gateway sticky session ttl",
+			mutate:  func(c *Config) { c.Gateway.StickySessionTTLSeconds = 0 },
+			wantErr: "gateway.sticky_session_ttl_seconds",
 		},
 		{
 			name:    "gateway concurrency slot ttl",

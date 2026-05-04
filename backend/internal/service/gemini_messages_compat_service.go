@@ -81,6 +81,13 @@ func NewGeminiMessagesCompatService(
 	}
 }
 
+func (s *GeminiMessagesCompatService) stickySessionTTL() time.Duration {
+	if s != nil && s.cfg != nil && s.cfg.Gateway.StickySessionTTLSeconds > 0 {
+		return time.Duration(s.cfg.Gateway.StickySessionTTLSeconds) * time.Second
+	}
+	return geminiStickySessionTTL
+}
+
 // GetTokenProvider returns the token provider for OAuth accounts
 func (s *GeminiMessagesCompatService) GetTokenProvider() *GeminiTokenProvider {
 	return s.tokenProvider
@@ -134,7 +141,7 @@ func (s *GeminiMessagesCompatService) SelectAccountForModelWithExclusions(ctx co
 	// 5. 设置粘性会话绑定
 	// Set sticky session binding
 	if sessionHash != "" {
-		_ = s.cache.SetSessionAccountID(ctx, derefGroupID(groupID), cacheKey, selected.ID, geminiStickySessionTTL)
+		_ = s.cache.SetSessionAccountID(ctx, derefGroupID(groupID), cacheKey, selected.ID, s.stickySessionTTL())
 	}
 
 	return s.hydrateSelectedAccount(ctx, selected)
@@ -217,7 +224,7 @@ func (s *GeminiMessagesCompatService) tryStickySessionHit(
 
 	// 刷新会话 TTL 并返回账号
 	// Refresh session TTL and return account
-	_ = s.cache.RefreshSessionTTL(ctx, derefGroupID(groupID), cacheKey, geminiStickySessionTTL)
+	_ = s.cache.RefreshSessionTTL(ctx, derefGroupID(groupID), cacheKey, s.stickySessionTTL())
 	return account
 }
 

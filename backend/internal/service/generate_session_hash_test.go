@@ -195,6 +195,7 @@ func TestGenerateSessionHash_SameSessionContextProducesSameHash(t *testing.T) {
 func TestGenerateSessionHash_MetadataOverridesSessionContext(t *testing.T) {
 	svc := &GatewayService{}
 
+	rawSessionID := "123e4567-e89b-12d3-a456-426614174000"
 	parsed := &ParsedRequest{
 		MetadataUserID: "user_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2_account__session_123e4567-e89b-12d3-a456-426614174000",
 		Messages: []any{
@@ -204,12 +205,52 @@ func TestGenerateSessionHash_MetadataOverridesSessionContext(t *testing.T) {
 			ClientIP:  "192.168.1.1",
 			UserAgent: "Mozilla/5.0",
 			APIKeyID:  100,
+			GroupID:   7,
 		},
 	}
 
 	hash := svc.GenerateSessionHash(parsed)
-	require.Equal(t, "123e4567-e89b-12d3-a456-426614174000", hash,
-		"metadata session_id should take priority over SessionContext")
+	require.Equal(t, svc.hashIsolatedSessionSeed(parsed.SessionContext, rawSessionID), hash,
+		"metadata session_id should take priority and be isolated by API key/group")
+	require.NotEqual(t, rawSessionID, hash)
+}
+
+func TestGenerateSessionHash_ExplicitSessionHeaderHasHighestPriority(t *testing.T) {
+	svc := &GatewayService{}
+
+	parsed := &ParsedRequest{
+		MetadataUserID: "user_a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2_account__session_metadata-session",
+		Messages: []any{
+			map[string]any{"role": "user", "content": "hello"},
+		},
+		SessionContext: &SessionContext{
+			APIKeyID:          100,
+			GroupID:           7,
+			ExplicitSessionID: "new-api-conversation-1",
+		},
+	}
+
+	hash := svc.GenerateSessionHash(parsed)
+	require.Equal(t, svc.hashIsolatedSessionSeed(parsed.SessionContext, "new-api-conversation-1"), hash)
+	require.NotEqual(t, "metadata-session", hash)
+}
+
+func TestGenerateSessionHash_ExplicitSessionIsIsolatedByKeyAndGroup(t *testing.T) {
+	svc := &GatewayService{}
+
+	mk := func(apiKeyID, groupID int64) *ParsedRequest {
+		return &ParsedRequest{
+			SessionContext: &SessionContext{
+				APIKeyID:          apiKeyID,
+				GroupID:           groupID,
+				ExplicitSessionID: "same-conversation",
+			},
+		}
+	}
+
+	require.NotEqual(t, svc.GenerateSessionHash(mk(1, 10)), svc.GenerateSessionHash(mk(2, 10)))
+	require.NotEqual(t, svc.GenerateSessionHash(mk(1, 10)), svc.GenerateSessionHash(mk(1, 20)))
+	require.Equal(t, svc.GenerateSessionHash(mk(1, 10)), svc.GenerateSessionHash(mk(1, 10)))
 }
 
 func TestGenerateSessionHash_MetadataJSON_HasHighestPriority(t *testing.T) {

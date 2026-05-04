@@ -272,7 +272,11 @@ func resolveOpenAIWSSessionHeaders(c *gin.Context, promptCacheKey string) openAI
 		ConversationSource: "none",
 	}
 	if c != nil && c.Request != nil {
-		if sessionID := strings.TrimSpace(c.Request.Header.Get("session_id")); sessionID != "" {
+		if sessionID := strings.TrimSpace(c.Request.Header.Get(Sub2APISessionHeader)); sessionID != "" {
+			resolution.SessionID = sessionID
+			resolution.SessionSource = "header_x_sub2api_session_id"
+		}
+		if sessionID := strings.TrimSpace(c.Request.Header.Get("session_id")); sessionID != "" && resolution.SessionID == "" {
 			resolution.SessionID = sessionID
 			resolution.SessionSource = "header_session_id"
 		}

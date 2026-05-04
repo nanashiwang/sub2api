@@ -50,4 +50,39 @@ describe('UseKeyModal', () => {
     expect(codeBlock.text()).toContain('"name": "GPT-5.4 Mini"')
     expect(codeBlock.text()).not.toContain('"name": "GPT-5.4 Nano"')
   })
+
+  it('renders New API and LibreChat sticky session examples', async () => {
+    const wrapper = mount(UseKeyModal, {
+      props: {
+        show: true,
+        apiKey: 'sk-test',
+        baseUrl: 'https://sub2api.example.com/v1',
+        platform: 'openai'
+      },
+      global: {
+        stubs: {
+          BaseDialog: {
+            template: '<div><slot /><slot name="footer" /></div>'
+          },
+          Icon: {
+            template: '<span />'
+          }
+        }
+      }
+    })
+
+    const tab = wrapper.findAll('button').find((button) =>
+      button.text().includes('keys.useKeyModal.cliTabs.newApiLibreChat')
+    )
+
+    expect(tab).toBeDefined()
+    await tab!.trigger('click')
+    await nextTick()
+
+    const text = wrapper.text()
+    expect(text).toContain('X-Sub2API-Session-ID')
+    expect(text).toContain('new-api-channel.yaml')
+    expect(text).toContain('librechat.yaml')
+    expect(text).toContain('https://sub2api.example.com/v1')
+  })
 })

@@ -149,6 +149,9 @@ gateway:
   # Timeout for waiting upstream response headers (seconds)
   # 等待上游响应头超时时间（秒）
   response_header_timeout: 600
+  # Sticky session TTL in seconds for session_hash -> account_id bindings
+  # 粘性会话绑定 TTL（秒），多容器共享 Redis 时用于保持同一会话命中同一账号
+  sticky_session_ttl_seconds: 3600
   # Max request body size in bytes (default: 256MB)
   # 请求体最大字节数（默认 256MB）
   max_body_size: 268435456

@@ -265,6 +265,11 @@ const SparkleIcon = {
 
 const clientTabs = computed((): TabConfig[] => {
   if (!props.platform) return []
+  const newApiLibreChatTab: TabConfig = {
+    id: 'new-api-librechat',
+    label: t('keys.useKeyModal.cliTabs.newApiLibreChat'),
+    icon: TerminalIcon
+  }
   switch (props.platform) {
     case 'openai': {
       const tabs: TabConfig[] = [
@@ -275,23 +280,27 @@ const clientTabs = computed((): TabConfig[] => {
         tabs.push({ id: 'claude', label: t('keys.useKeyModal.cliTabs.claudeCode'), icon: TerminalIcon })
       }
       tabs.push({ id: 'opencode', label: t('keys.useKeyModal.cliTabs.opencode'), icon: TerminalIcon })
+      tabs.push(newApiLibreChatTab)
       return tabs
     }
     case 'gemini':
       return [
         { id: 'gemini', label: t('keys.useKeyModal.cliTabs.geminiCli'), icon: SparkleIcon },
-        { id: 'opencode', label: t('keys.useKeyModal.cliTabs.opencode'), icon: TerminalIcon }
+        { id: 'opencode', label: t('keys.useKeyModal.cliTabs.opencode'), icon: TerminalIcon },
+        newApiLibreChatTab
       ]
     case 'antigravity':
       return [
         { id: 'claude', label: t('keys.useKeyModal.cliTabs.claudeCode'), icon: TerminalIcon },
         { id: 'gemini', label: t('keys.useKeyModal.cliTabs.geminiCli'), icon: SparkleIcon },
-        { id: 'opencode', label: t('keys.useKeyModal.cliTabs.opencode'), icon: TerminalIcon }
+        { id: 'opencode', label: t('keys.useKeyModal.cliTabs.opencode'), icon: TerminalIcon },
+        newApiLibreChatTab
       ]
     default:
       return [
         { id: 'claude', label: t('keys.useKeyModal.cliTabs.claudeCode'), icon: TerminalIcon },
-        { id: 'opencode', label: t('keys.useKeyModal.cliTabs.opencode'), icon: TerminalIcon }
+        { id: 'opencode', label: t('keys.useKeyModal.cliTabs.opencode'), icon: TerminalIcon },
+        newApiLibreChatTab
       ]
   }
 })
@@ -309,7 +318,7 @@ const openaiTabs: TabConfig[] = [
   { id: 'windows', label: 'Windows', icon: WindowsIcon }
 ]
 
-const showShellTabs = computed(() => activeClientTab.value !== 'opencode')
+const showShellTabs = computed(() => !['opencode', 'new-api-librechat'].includes(activeClientTab.value))
 
 const currentTabs = computed(() => {
   if (!showShellTabs.value) return []
@@ -320,6 +329,9 @@ const currentTabs = computed(() => {
 })
 
 const platformDescription = computed(() => {
+  if (activeClientTab.value === 'new-api-librechat') {
+    return t('keys.useKeyModal.newApiLibreChat.description')
+  }
   switch (props.platform) {
     case 'openai':
       if (activeClientTab.value === 'claude') {
@@ -336,6 +348,9 @@ const platformDescription = computed(() => {
 })
 
 const platformNote = computed(() => {
+  if (activeClientTab.value === 'new-api-librechat') {
+    return t('keys.useKeyModal.newApiLibreChat.note')
+  }
   switch (props.platform) {
     case 'openai':
       if (activeClientTab.value === 'claude') {
@@ -394,6 +409,10 @@ const currentFiles = computed((): FileConfig[] => {
     return trimmed.endsWith('/v1beta') ? trimmed : `${trimmed}/v1beta`
   })()
 
+  if (activeClientTab.value === 'new-api-librechat') {
+    return generateNewApiLibreChatFiles(apiBase, apiKey, props.platform)
+  }
+
   if (activeClientTab.value === 'opencode') {
     switch (props.platform) {
       case 'anthropic':
@@ -432,6 +451,67 @@ const currentFiles = computed((): FileConfig[] => {
       return generateAnthropicFiles(baseUrl, apiKey)
   }
 })
+
+function generateNewApiLibreChatFiles(sub2ApiBaseUrl: string, apiKey: string, platform: GroupPlatform | null): FileConfig[] {
+  const endpointHint =
+    platform === 'gemini'
+      ? '# Gemini native channels can use /v1beta if your New API supports it.'
+      : platform === 'antigravity'
+        ? '# Antigravity Claude/Gemini channels can use /antigravity/v1 or /antigravity/v1beta as needed.'
+        : '# OpenAI-compatible channels should usually use /v1.'
+
+  const newApiChannelContent = `# New API channel -> Sub2API
+type: openai-compatible
+base_url: "${sub2ApiBaseUrl}"
+api_key: "${apiKey}"
+headers:
+  X-Sub2API-Session-ID: "{{LIBRECHAT_BODY_CONVERSATIONID}}"
+fallback_body_fields:
+  session_id: "{{LIBRECHAT_BODY_CONVERSATIONID}}"
+  conversation_id: "{{LIBRECHAT_BODY_CONVERSATIONID}}"
+${endpointHint}`
+
+  const libreChatContent = `# LibreChat -> New API
+endpoints:
+  custom:
+    - name: "New API via Sub2API"
+      apiKey: "\${NEW_API_TOKEN}"
+      baseURL: "https://newapi.example.com/v1"
+      models:
+        default:
+          - "gpt-4o"
+      headers:
+        X-Sub2API-Session-ID: "{{LIBRECHAT_BODY_CONVERSATIONID}}"`
+
+  const headerContent = `Priority:
+1. X-Sub2API-Session-ID
+2. session_id
+3. conversation_id
+4. metadata.user_id (Anthropic/Claude compatible)
+
+Recommended header:
+X-Sub2API-Session-ID: {{LIBRECHAT_BODY_CONVERSATIONID}}
+
+If New API cannot pass custom headers, keep conversation_id/session_id in the body.`
+
+  return [
+    {
+      path: 'new-api-channel.yaml',
+      content: newApiChannelContent,
+      hint: t('keys.useKeyModal.newApiLibreChat.channelHint')
+    },
+    {
+      path: 'librechat.yaml',
+      content: libreChatContent,
+      hint: t('keys.useKeyModal.newApiLibreChat.libreChatHint')
+    },
+    {
+      path: 'sticky-session.txt',
+      content: headerContent,
+      hint: t('keys.useKeyModal.newApiLibreChat.headerHint')
+    }
+  ]
+}
 
 function generateAnthropicFiles(baseUrl: string, apiKey: string): FileConfig[] {
   let path: string

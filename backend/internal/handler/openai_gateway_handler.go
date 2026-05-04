@@ -619,7 +619,11 @@ func (h *OpenAIGatewayHandler) Messages(c *gin.Context) {
 	// 从中派生 sessionHash（sticky session）和 promptCacheKey（upstream cache）。
 	if sessionHash == "" || promptCacheKey == "" {
 		if userID := strings.TrimSpace(gjson.GetBytes(body, "metadata.user_id").String()); userID != "" {
-			seed := reqModel + "-" + userID
+			groupID := int64(0)
+			if apiKey.GroupID != nil {
+				groupID = *apiKey.GroupID
+			}
+			seed := fmt.Sprintf("k%d:g%d:%s-%s", apiKey.ID, groupID, reqModel, userID)
 			if promptCacheKey == "" {
 				promptCacheKey = service.GenerateSessionUUID(seed)
 			}

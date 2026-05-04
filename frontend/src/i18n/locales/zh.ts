@@ -695,7 +695,8 @@ export default {
         geminiCli: 'Gemini CLI',
         codexCli: 'Codex CLI',
         codexCliWs: 'Codex CLI (WebSocket)',
-        opencode: 'OpenCode'
+        opencode: 'OpenCode',
+        newApiLibreChat: 'New API / LibreChat'
       },
       antigravity: {
         description: '为 Antigravity 分组配置 API 访问。请根据您使用的客户端选择对应的配置方式。',
@@ -716,6 +717,13 @@ export default {
         title: 'OpenCode 配置示例',
         subtitle: 'opencode.json',
         hint: '配置文件路径：~/.config/opencode/opencode.json（或 opencode.jsonc），不存在需手动创建。可使用默认 provider（openai/anthropic/google）或自定义 provider_id。API Key 支持直接配置或通过客户端 /connect 命令配置。示例仅供参考，模型与选项可按需调整。'
+      },
+      newApiLibreChat: {
+        description: '推荐链路：LibreChat → New API → Sub2API。Sub2API 通过会话 ID 保持同一会话固定到同一个上游账号。',
+        note: '优先透传 X-Sub2API-Session-ID；如果 New API 不方便透传自定义 header，请在请求体保留 session_id 或 conversation_id。',
+        channelHint: '在 New API 中创建到 Sub2API 的渠道，上游 Key 使用当前 Sub2API API Key。',
+        libreChatHint: 'LibreChat custom endpoint 指向 New API；NEW_API_TOKEN 替换为 New API 的访问 token。',
+        headerHint: '会话标识优先级说明，便于排查同会话未命中同账号的问题。'
       }
     },
     customKeyLabel: '自定义密钥',
